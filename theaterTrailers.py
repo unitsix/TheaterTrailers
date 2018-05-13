@@ -303,14 +303,26 @@ def videoDownloader(string, passedTitle, yearVar):
   with youtube_dl.YoutubeDL(ydl1_opts) as ydl:
     logger.info("downloading {0} from {1}".format(passedTitle, string))
     ydl.download([string])
-    shutil.copy2(
-        os.path.join(trailerLocation, '{0} ({1})'.format(passedTitle, yearVar), '{0} ({1}).mp4'.format(passedTitle, yearVar)),
-        os.path.join(trailerLocation, '{0} ({1})'.format(passedTitle, yearVar), '{0} ({1})-trailer.mp4'.format(passedTitle, yearVar))
-      )
-    shutil.copy2(
-        os.path.join(TheaterTrailersHome, 'res', 'poster.jpg'),
-        os.path.join(trailerLocation, '{0} ({1})'.format(passedTitle, yearVar))
-      )
+    try:
+        shutil.copy2(
+            os.path.join(trailerLocation, '{0} ({1})'.format(passedTitle, yearVar), '{0} ({1}).mp4'.format(passedTitle, yearVar)),
+            os.path.join(trailerLocation, '{0} ({1})'.format(passedTitle, yearVar), '{0} ({1})-trailer.mp4'.format(passedTitle, yearVar))
+          )
+    except shutil.Error as e:
+        logger.info('Error: %s' % e)
+    except IOError as e:
+        logger.info('Error: %s' % e.strerror)
+    
+    try:
+        shutil.copy2(
+            os.path.join(TheaterTrailersHome, 'res', 'poster.jpg'),
+            os.path.join(trailerLocation, '{0} ({1})'.format(passedTitle, yearVar))
+          )
+    except shutil.Error as e:
+        logger.info('Error: %s' % e)
+    except IOError as e:
+        logger.info('Error: %s' % e.strerror)
+
     updatePlex()
 
 
@@ -358,6 +370,8 @@ def infoDownloader(playlist):
 def fixTitle(movieTitle):
   if "Red Band" in movieTitle:
     movieTitle = ' '.join(movieTitle.split(' ')[:-2])
+  if "'" in movieTitle:
+    movieTitle = movieTitle.replace("'", "")
   stopwords = ['Teaser','teaser']
   querywords = movieTitle.split()
   resultwords  = [word for word in querywords if word.lower() not in stopwords]
@@ -423,6 +437,8 @@ def cleanup():
     dirsList = os.listdir(os.path.join(TheaterTrailersHome, 'Trailers'))
     for item in dirsList:
       dirsTitle = re.search('^.*(?=(\())', item)
+      if dirsTitle is None:
+        return None
       dirsTitle = dirsTitle.group(0).strip()
       dirsYear = re.search('(?<=\().*(?=\))', item)
       dirsYear = dirsYear.group(0).strip()
